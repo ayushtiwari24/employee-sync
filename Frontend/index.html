@@ -1,0 +1,144 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Album Records</title>
+  <style>
+    #log {
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Album Records</h1>
+  <div id="log">Loading...</div>
+
+  <script>
+    const ws = new WebSocket('ws://localhost:3000');
+
+    ws.onopen = () => {
+      console.log('Connected to server');
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      const logElement = document.getElementById('log');
+      logElement.innerHTML = `
+        <p>New Records Added: ${data.newCount}</p>
+        <p>Existing Records: ${data.existingCount}</p>
+        <p>Updated Records: ${data.updatedCount}</p>
+        <p>Errors Encountered: ${data.errorCount}</p>
+      `;
+
+      // Display updated records and fields
+      if (data.updatedRecords.length > 0) {
+        logElement.innerHTML += `<h2>Updated Records</h2>`;
+        data.updatedRecords.forEach(updatedRecord => {
+          logElement.innerHTML += `<p>Record ID: ${updatedRecord.record.id}</p>`;
+          logElement.innerHTML += `<p>Updated Fields:</p>`;
+          for (const [key, value] of Object.entries(updatedRecord.updatedFields)) {
+            logElement.innerHTML += `<p>${key}: ${value}</p>`;
+          }
+        });
+      }
+
+      // Display errors
+      if (data.errors.length > 0) {
+        logElement.innerHTML += `<h2>Errors Encountered</h2>`;
+        data.errors.forEach(error => {
+          logElement.innerHTML += `<p>${error}</p>`;
+        });
+      }
+    };
+  </script>
+</body>
+</html> -->
+
+
+
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Album Records</title>
+  <style>
+    #log {
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Album Records</h1>
+  <div id="log">Loading...</div>
+
+  <script>
+    const ws = new WebSocket('ws://localhost:3000');
+
+    ws.onopen = () => {
+      console.log('Connected to server');
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      const logElement = document.getElementById('log');
+
+      // Display counts for the current batch
+      logElement.innerHTML += `
+        <h2>Batch Results</h2>
+        <p>New Records Added: ${data.newCount}</p>
+        <p>Existing Records: ${data.existingCount}</p>
+        <p>Updated Records: ${data.updatedCount}</p>
+        <p>Errors Encountered: ${data.errorCount}</p>
+      `;
+
+      // Display updated records for the current batch
+      if (data.updatedRecords.length > 0) {
+        logElement.innerHTML += `<h3>Updated Records</h3>`;
+        data.updatedRecords.forEach(updatedRecord => {
+          logElement.innerHTML += `<p>Record ID: ${updatedRecord.id}</p>`;
+          // Display other fields as needed
+        });
+      }
+
+      // Display errors for the current batch
+      if (data.errors.length > 0) {
+        logElement.innerHTML += `<h3>Errors Encountered</h3>`;
+        data.errors.forEach(error => {
+          logElement.innerHTML += `<p>${error}</p>`;
+        });
+      }
+    };
+  </script>
+</body>
+</html> -->
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Album Records Log</title>
+  <style>
+    #log {
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Album Records Log</h1>
+  <div id="log">Loading...</div>
+
+  <script src="app.js"></script>
+</body>
+</html>
