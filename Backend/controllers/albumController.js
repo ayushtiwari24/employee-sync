@@ -221,11 +221,135 @@
 //   saveRecords,
 // };
 
-///////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
+
+// const axios = require("axios");
+// const Album = require("../models/Album");
+// const logger = require("../utils/logger");
+
+// const saveRecords = async (ws) => {
+//   let totalNewCount = 0;
+//   let totalExistingCount = 0;
+//   let totalUpdatedCount = 0;
+//   let totalErrorCount = 0;
+//   let totalUpdatedRecords = [];
+//   let totalErrors = [];
+
+//   let albumNumber = 1;
+//   let hasNextPage = true;
+
+//   while (hasNextPage) {
+//     let newCount = 0;
+//     let existingCount = 0;
+//     let updatedCount = 0;
+//     let errorCount = 0;
+//     let updatedRecords = [];
+//     let errors = [];
+
+//     try {
+//       const response = await axios.get(
+//         `https://jsonplaceholder.typicode.com/albums/${albumNumber}/photos`
+//       );
+//       const records = response.data;
+
+//       if (records.length === 0) {
+//         hasNextPage = false;
+//         break;
+//       }
+
+//       for (const record of records) {
+//         try {
+//           // if (!isValidRecord(record)) {
+//           //   throw new Error("Invalid record: Missing required fields");
+//           // }
+
+//           const existingRecord = await Album.findOne({ id: record.id });
+//           if (!existingRecord) {
+//             await Album.create(record);
+//             newCount++;
+//           } else {
+//             const updatedFields = {};
+//             for (const [key, value] of Object.entries(record)) {
+//               if (existingRecord[key] !== value) {
+//                 updatedFields[key] = value;
+//               }
+//             }
+//             if (Object.keys(updatedFields).length > 0) {
+//               const updatedRecord = await Album.findOneAndUpdate(
+//                 { id: record.id },
+//                 { $set: updatedFields },
+//                 { new: true }
+//               );
+//               updatedRecords.push({ record: updatedRecord, updatedFields });
+//               updatedCount++;
+//             } else {
+//               existingCount++;
+//             }
+//           }
+//         } catch (err) {
+//           errorCount++;
+//           errors.push(err.message);
+//           logger.error(
+//             `Error saving record: ${JSON.stringify(record)}, Error: ${
+//               err.message
+//             }`
+//           );
+//         }
+//       }
+//     } catch (err) {
+//       errorCount++;
+//       errors.push(err.message);
+//       logger.error(
+//         `Error fetching records from API for album ${albumNumber}: ${err.message}`
+//       );
+//     }
+
+//     totalNewCount += newCount;
+//     totalExistingCount += existingCount;
+//     totalUpdatedCount += updatedCount;
+//     totalErrorCount += errorCount;
+//     totalUpdatedRecords = totalUpdatedRecords.concat(updatedRecords);
+//     totalErrors = totalErrors.concat(errors);
+
+//     ws.send(
+//       JSON.stringify({
+//         newCount,
+//         existingCount,
+//         updatedCount,
+//         errorCount,
+//         updatedRecords,
+//         errors,
+//       })
+//     );
+
+//     albumNumber++;
+//   }
+
+//   logger.info(`Total New Records Added: ${totalNewCount}`);
+//   logger.info(`Total Existing Records: ${totalExistingCount}`);
+//   logger.info(`Total Updated Records: ${totalUpdatedCount}`);
+//   logger.info(`Total Errors Encountered: ${totalErrorCount}`);
+
+//   return {
+//     totalNewCount,
+//     totalExistingCount,
+//     totalUpdatedCount,
+//     totalErrorCount,
+//     totalUpdatedRecords,
+//     totalErrors,
+//   };
+// };
+
+// module.exports = {
+//   saveRecords,
+// };
+
+///////////////////////////////////////////////////////////////
 
 const axios = require("axios");
 const Album = require("../models/Album");
 const logger = require("../utils/logger");
+const fs = require("fs");
 
 const saveRecords = async (ws) => {
   let totalNewCount = 0;
@@ -259,17 +383,23 @@ const saveRecords = async (ws) => {
 
       for (const record of records) {
         try {
-          // if (!isValidRecord(record)) {
-          //   throw new Error("Invalid record: Missing required fields");
-          // }
+          const { id, ...recordWithoutId } = record;
+
+          if (
+            !recordWithoutId.id ||
+            !recordWithoutId.title ||
+            !recordWithoutId.url
+          ) {
+            throw new Error("Invalid record: Missing required fields");
+          }
 
           const existingRecord = await Album.findOne({ id: record.id });
           if (!existingRecord) {
-            await Album.create(record);
+            await Album.create(recordWithoutId);
             newCount++;
           } else {
             const updatedFields = {};
-            for (const [key, value] of Object.entries(record)) {
+            for (const [key, value] of Object.entries(recordWithoutId)) {
               if (existingRecord[key] !== value) {
                 updatedFields[key] = value;
               }
@@ -311,18 +441,40 @@ const saveRecords = async (ws) => {
     totalUpdatedRecords = totalUpdatedRecords.concat(updatedRecords);
     totalErrors = totalErrors.concat(errors);
 
-    ws.send(
+    // Send batch results to client via WebSocket if ws is defined
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(
+        JSON.stringify({
+          newCount,
+          existingCount,
+          updatedCount,
+          errorCount,
+          updatedRecords,
+          errors,
+        })
+      );
+    }
+
+    albumNumber++;
+  }
+
+  try {
+    // Write batch results to a JSON file
+    fs.writeFileSync(
+      "./batchResults.json",
       JSON.stringify({
-        newCount,
-        existingCount,
-        updatedCount,
-        errorCount,
-        updatedRecords,
-        errors,
+        totalNewCount,
+        totalExistingCount,
+        totalUpdatedCount,
+        totalErrorCount,
+        totalUpdatedRecords,
+        totalErrors,
       })
     );
 
-    albumNumber++;
+    logger.info("Batch results saved to batchResults.json");
+  } catch (error) {
+    logger.error("Error saving batch results to file:", error);
   }
 
   logger.info(`Total New Records Added: ${totalNewCount}`);

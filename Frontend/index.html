@@ -122,7 +122,7 @@
 
 
 
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -140,5 +140,189 @@
   <div id="log">Loading...</div>
 
   <script src="app.js"></script>
+</body>
+</html> -->
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Album Records</title>
+  <style>
+    #log {
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Album Records</h1>
+  <div id="log">Loading...</div>
+
+  <button id="syncButton">Start Sync</button>
+
+  <script>
+    const ws = new WebSocket('ws://localhost:3000');
+
+    ws.onopen = () => {
+      console.log('Connected to WebSocket server');
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      const logElement = document.getElementById('log');
+
+      logElement.innerHTML = ''; // Clear previous log content
+
+      // Display all saved batch results
+      data.forEach(result => {
+        logElement.innerHTML += `
+          <h2>Batch Results</h2>
+          <p>New Records Added: ${result.totalNewCount}</p>
+          <p>Existing Records: ${result.totalExistingCount}</p>
+          <p>Updated Records: ${result.totalUpdatedCount}</p>
+          <p>Errors Encountered: ${result.totalErrorCount}</p>
+        `;
+
+        if (result.totalUpdatedRecords && result.totalUpdatedRecords.length > 0) {
+          logElement.innerHTML += `<h3>Updated Records</h3>`;
+          result.totalUpdatedRecords.forEach(updatedRecord => {
+            logElement.innerHTML += `<p>Record ID: ${updatedRecord.record.id}</p>`;
+            // Display other fields as needed
+          });
+        }
+
+        if (result.totalErrors && result.totalErrors.length > 0) {
+          logElement.innerHTML += `<h3>Errors Encountered</h3>`;
+          result.totalErrors.forEach(error => {
+            logElement.innerHTML += `<p>${error}</p>`;
+          });
+        }
+      });
+    };
+
+    const syncButton = document.getElementById('syncButton');
+    syncButton.addEventListener('click', () => {
+      fetch('http://localhost:3000/startSync')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to start synchronization');
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Sync started successfully');
+        })
+        .catch(error => {
+          console.error('Error starting sync:', error);
+          const logElement = document.getElementById('log');
+          logElement.innerHTML += `<p>Error starting sync: ${error.message}</p>`;
+        });
+    });
+
+    // Fetch and display saved batch results on page load
+    fetch('http://localhost:3000/batchResults')
+      .then(response => response.json())
+      .then(savedResults => {
+        ws.send(JSON.stringify(savedResults)); // Send saved results to WebSocket server
+      })
+      .catch(error => {
+        console.error('Error fetching saved batch results:', error);
+        const logElement = document.getElementById('log');
+        logElement.innerHTML += `<p>Error fetching saved batch results: ${error.message}</p>`;
+      });
+  </script>
+</body>
+</html> -->
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Album Sync</title>
+</head>
+<body>
+    <h1>Album Sync</h1>
+    <div id="syncResults">
+        <button onclick="startSync()">Start Sync</button>
+        <div id="resultsContainer"></div>
+    </div>
+
+    <script>
+        async function fetchBatchResults() {
+            try {
+                const response = await fetch('http://localhost:3000/batchResults.json');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch batch results');
+                }
+                const results = await response.json();
+                return results;
+            } catch (error) {
+                throw new Error('Error fetching batch results: ' + error.message);
+            }
+        }
+
+        async function startSync() {
+            try {
+                const response = await fetch('http://localhost:3000/startSync');
+                if (!response.ok) {
+                    throw new Error('Failed to start synchronization');
+                }
+                alert('Sync process started. Please wait for results.');
+                const results = await fetchBatchResults();
+                displayResults(results);
+            } catch (error) {
+                console.error('Error starting sync:', error);
+                alert('Error starting sync: ' + error.message);
+            }
+        }
+
+        function displayResults(results) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            let html = '<h2>Batch Results</h2>';
+
+            if (results) {
+                html += `
+                    <p>New Records Added: ${results.totalNewCount}</p>
+                    <p>Existing Records: ${results.totalExistingCount}</p>
+                    <p>Updated Records: ${results.totalUpdatedCount}</p>
+                    <p>Errors Encountered: ${results.totalErrorCount}</p>
+                `;
+
+                if (results.totalUpdatedRecords.length > 0) {
+                    html += '<h3>Updated Records:</h3>';
+                    results.totalUpdatedRecords.forEach(record => {
+                        html += '<pre>' + JSON.stringify(record, null, 2) + '</pre>';
+                    });
+                }
+
+                if (results.totalErrors.length > 0) {
+                    html += '<h3>Errors Encountered:</h3>';
+                    results.totalErrors.forEach(error => {
+                        html += '<p>' + error + '</p>';
+                    });
+                }
+            } else {
+                html += '<p>No batch results available.</p>';
+            }
+
+            resultsContainer.innerHTML = html;
+        }
+
+        // Immediately check if batchResults.json is available on page load
+        window.onload = async () => {
+            try {
+                const results = await fetchBatchResults();
+                displayResults(results);
+            } catch (error) {
+                console.error('Error loading batch results:', error);
+                alert('Batch results not available. Click "Start Sync" to initiate synchronization.');
+            }
+        };
+    </script>
 </body>
 </html>
